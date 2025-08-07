@@ -1,0 +1,6 @@
+flask
+flask-cors
+supabase
+openai
+pinecone
+python-dotenv
