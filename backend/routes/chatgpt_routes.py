@@ -26,8 +26,11 @@ def chat_with_gpt():
     if not user_message or not chat_id:
         return jsonify({"error": "Missing fields"}), 400
 
-    settings = get_user_settings()
-    openai.api_key = settings["openai_key"]
+    settings = get_user_settings(user_id)
+    if not settings or not settings.get("openai_key"):
+        return jsonify({"error": "No OpenAI API key found for this user"}), 400
+
+    openai.api_key = settings["openai_key"].strip()
     
     print(settings["openai_key"])
     # Save user message
