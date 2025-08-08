@@ -26,7 +26,7 @@ def chat_with_gpt():
     if not user_message or not chat_id:
         return jsonify({"error": "Missing fields"}), 400
 
-    settings = get_user_settings(user_id)
+    settings = get_user_settings()
     if not settings or not settings.get("openai_key"):
         return jsonify({"error": "No OpenAI API key found for this user"}), 400
 
