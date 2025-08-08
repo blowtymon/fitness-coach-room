@@ -52,28 +52,35 @@ def save_settings():
     user_id = get_user_id_from_token(token)
     if not user_id:
         return jsonify({"error": "Unauthorized"}), 401
-    
-    data = request.get_json()
-    openai_key = data.get("openai_key")
-    pinecone_key = data.get("pinecone_key")
-    pinecone_env = data.get("pinecone_env")
-    pinecone_index = data.get("pinecone_index")
-    openai_model = data.get("openai_model")
-    temperature = data.get("temperature")
 
-    record = {
-        "id": str(uuid.uuid4()),
-        # "user_id": user_id,
-        "openai_key": openai_key,
-        "pinecone_key": pinecone_key,
-        "pinecone_env": pinecone_env,
-        "pinecone_index": pinecone_index,
-        # "tavily_key": tavily_key,
-        # "memory_depth": memory_depth,
-        "openai_model": openai_model,
-        "temperature": temperature,
-        "updated_at": datetime.utcnow().isoformat()
-    }
+    data = request.get_json() or {}
 
-    supabase.table(SETTINGS_TABLE).upsert(record).execute()
+    existing = supabase.table(SETTINGS_TABLE).select("*").limit(1).single().execute()
+    existing_row = existing.data if hasattr(existing, "data") else None
+
+    def present(v):
+        return v is not None and v != "" 
+
+    fields = [
+        "openai_key",
+        "pinecone_key",
+        "pinecone_env",
+        "pinecone_index",
+        "openai_model",
+        "temperature",
+    ]
+
+    updates = {k: v for k, v in ((f, data.get(f)) for f in fields) if present(v)}
+    updates["updated_at"] = datetime.utcnow().isoformat()
+
+    if existing_row:
+        supabase.table(SETTINGS_TABLE).update(updates).eq("id", existing_row["id"]).execute()
+    else:
+        record = {
+            "id": str(uuid.uuid4()),
+            "user_id": user_id,
+            **updates,
+        }
+        supabase.table(SETTINGS_TABLE).insert(record).execute()
+
     return {"status": "settings saved"}

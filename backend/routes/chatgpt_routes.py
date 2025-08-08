@@ -27,9 +27,9 @@ def chat_with_gpt():
         return jsonify({"error": "Missing fields"}), 400
 
     settings = get_user_settings()
-    # openai.api_key = settings["openai_key"]
-    openai.api_key = "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"
+    openai.api_key = settings["openai_key"]
     
+    print(settings["openai_key"])
     # Save user message
     user_msg_id = str(uuid.uuid4())
     assistant_msg_id = str(uuid.uuid4())
