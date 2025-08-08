@@ -26,12 +26,10 @@ export interface UpdateFolderRequest {
 }
 
 class ChatApiService {
-  // Chat endpoints
   async createChat(data: CreateChatRequest = {}) {
     const response = await apiService.post<Chat>("/chats/create", data);
 
     if (response.success && response.data) {
-      // Convert date strings back to Date objects
       response.data.createdAt = new Date(response.data.createdAt);
       response.data.updatedAt = new Date(response.data.updatedAt);
     }
@@ -44,7 +42,6 @@ class ChatApiService {
     const response = await apiService.get<Chat[]>(endpoint);
 
     if (response.success && response.data) {
-      // Convert date strings back to Date objects
       response.data = response.data.map((chat) => ({
         ...chat,
         createdAt: new Date(chat.createdAt),
@@ -104,7 +101,6 @@ class ChatApiService {
     return apiService.delete(`/chats/delete/${chatId}`);
   }
 
-  // Folder endpoints
   async createFolder(data: CreateFolderRequest) {
     const response = await apiService.post<Folder>("/folders/create", data);
 

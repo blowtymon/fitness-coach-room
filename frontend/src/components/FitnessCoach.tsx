@@ -153,10 +153,6 @@ export const FitnessCoach = () => {
     fetchlogs();
   }, []);
 
-  //   useEffect(() => {
-  //     memoryService.initialize();
-  //   }, [loading, user, chats.length]);
-
   const handleSendMessage = (content: string, isUser: boolean) => {
     addMessageToCurrentChat(content, isUser);
 
@@ -171,10 +167,13 @@ export const FitnessCoach = () => {
   };
 
   const handleNewLog = async (log: Omit<Log, "id" | "timestamp">) => {
-    if (!log.type) {
-      console.error("Log type is required");
-      return;
-    }
+    const newLog: Log = {
+      ...log,
+      id: crypto.randomUUID(),
+      timestamp: new Date(),
+    };
+
+    await logsApi.saveLog(newLog);
   };
 
   const generateLogResponse = (log: Log): string => {

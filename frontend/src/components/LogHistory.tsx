@@ -117,7 +117,6 @@ export const LogHistory = ({ logs }: LogHistoryProps) => {
       (log.log_text?.toLowerCase().includes(term) ?? false) ||
       (log.metadata && structuredIncludes(parseMetadata(log.metadata), term));
 
-    // ✅ fixed filterType check
     let matchesType = true;
     if (filterType !== "all") {
       const metadata = parseMetadata(log.metadata);
@@ -134,8 +133,6 @@ export const LogHistory = ({ logs }: LogHistoryProps) => {
 
     return matchesSearch && matchesType && matchesDate;
   });
-
-  console.log(logs);
 
   const getLogTypeIcon = (type: string) => {
     switch (type) {
@@ -155,9 +152,7 @@ export const LogHistory = ({ logs }: LogHistoryProps) => {
   };
 
   return (
-    <div
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       {/* Filters */}
       <Card className="bg-gradient-to-br from-card via-card to-card/90">
         <CardHeader>
@@ -234,7 +229,6 @@ export const LogHistory = ({ logs }: LogHistoryProps) => {
                     onDoubleClick={(e) => {
                       e.stopPropagation();
                       const parsed = parseMetadata(log?.metadata);
-                      console.log("Double-click detected:", parsed);
                       setJsonModalData(parsed);
                     }}
                     className="border border-border/50 rounded-lg p-4 hover:bg-muted/50 transition-colors"

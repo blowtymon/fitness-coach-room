@@ -28,7 +28,7 @@ export interface UpdateLogRequest {
 
 class LogsApiService {
   async saveLog(data: SaveLogRequest) {
-    const response = await apiService.post<Log>("/logs/save", data);
+    const response = await apiService.post<Log>("/log/save", data);
 
     if (response.success && response.data) {
       response.data.timestamp = new Date(response.data.timestamp);
@@ -39,8 +39,8 @@ class LogsApiService {
 
   // logsApi.ts
   async getLogs(limit?: number): Promise<Log[]> {
-    const endpoint = limit ? `/logs/?limit=${limit}` : "/logs/";
-    const response = await apiService.get<Log[]>(endpoint);
+    // const endpoint = limit ? `/logs/?limit=${limit}` : "/logs/";
+    const response = await apiService.get<Log[]>("/log/getLogs");
 
     if (response.success && response.data) {
       return response.data.map((log) => ({

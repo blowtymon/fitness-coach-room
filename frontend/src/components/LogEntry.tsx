@@ -111,7 +111,7 @@ export const LogEntry = ({ onSubmit }: LogEntryProps) => {
       type: "quick",
       title,
       content: quickContent,
-      note,
+      description: note,
     });
 
     setQuickContent("");
@@ -203,10 +203,6 @@ export const LogEntry = ({ onSubmit }: LogEntryProps) => {
                     onChange={(e) => setQuickContent(e.target.value)}
                     rows={4}
                   />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Natural language parsing enabled - mention DOMS, weight,
-                    waist, sleep, etc.
-                  </p>
                 </div>
                 <div>
                   <Label htmlFor="logType">Note</Label>

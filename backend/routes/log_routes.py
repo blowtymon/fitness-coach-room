@@ -40,7 +40,7 @@ def save_log():
     }).execute()
 
     structured = data.get("structured", {})
-    vector = embed_text(data["description"] + "\n" + json.dumps(structured))
+    # vector = embed_text(data["description"] + "\n" + json.dumps(structured))
     flat_metadata = {}
 
     for section, section_data in structured.items():
@@ -50,19 +50,19 @@ def save_log():
         else:
             flat_metadata[section] = section_data
 
-    metadata = {
-        "user_id": user_id,
-        "timestamp": timestamp,
-        "log_text": data["description"],
-        **flat_metadata
-    }
+    # metadata = {
+    #     "user_id": user_id,
+    #     "timestamp": timestamp,
+    #     "log_text": data["description"],
+    #     **flat_metadata
+    # }
 
-    upsert_vector(log_id, vector, metadata)
+    # upsert_vector(log_id, vector, metadata)
 
     return jsonify({"status": "success", "id": log_id})
 
 
-@log_bp.route("/", methods=["GET"])
+@log_bp.route("/getLogs", methods=["GET"])
 def get_logs():
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     user_id = get_user_id_from_token(token)

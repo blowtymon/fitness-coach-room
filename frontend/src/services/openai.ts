@@ -1,19 +1,12 @@
-import type { Log, ChatMessage } from "@/components/FitnessCoach";
-
-interface BackendChatResponse {
-  type: string;
-  message: string;
-  log_id?: string;
-}
+// const BASE_URL = "http://localhost:5000/api/chatgpt/chat";
+const BASE_URL = "http://18.234.185.87:5000/api/chatgpt/chat";
 
 export class OpenAIService {
-  private baseUrl = "http://localhost:5000/chatgpt/chat";
-
   async streamResponse(
     messageContent: string,
     chatId: string
   ): Promise<ReadableStream<Uint8Array>> {
-    const response = await fetch(this.baseUrl, {
+    const response = await fetch(BASE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

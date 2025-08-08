@@ -11,9 +11,8 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Mail, Lock, User } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useContext } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
 export function AuthForm({ mode = "signin" }: { mode?: "signin" | "signup" }) {
@@ -62,12 +61,7 @@ export function AuthForm({ mode = "signin" }: { mode?: "signin" | "signup" }) {
       } else {
         response = await signIn(email, password);
         if (response.success) {
-          localStorage.setItem("fitness_token", response.data.token);
-          localStorage.setItem(
-            "fitness_user",
-            JSON.stringify(response.data.user)
-          );
-          navigate("/chat");
+          navigate("/chat", { replace: true });
           toast({
             title: "Login successful",
             description: "Welcome back!",
@@ -100,7 +94,6 @@ export function AuthForm({ mode = "signin" }: { mode?: "signin" | "signup" }) {
     setLoading(true);
 
     try {
-      // For demo purposes, create a Google user
       const response = await signUp(
         "user@gmail.com",
         "google-auth-demo",
