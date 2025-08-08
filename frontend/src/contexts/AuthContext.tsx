@@ -26,6 +26,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (user) {
+      setLoading(false);
+      return;
+    }
+
     const storedUser = localStorage.getItem("fitness_user");
     const storedToken = localStorage.getItem("fitness_token");
 
@@ -69,10 +74,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const response = await authApi.signin({ email, password });
 
     if (response.success && response.data) {
-      setUser(response.data.user);
-      setToken(response.data.token);
       localStorage.setItem("fitness_user", JSON.stringify(response.data.user));
       localStorage.setItem("fitness_token", response.data.token);
+      setUser(response.data.user);
+      setToken(response.data.token);
+      setLoading(false); // ensure ProtectedRoute sees user
     }
 
     return response;
@@ -82,8 +88,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const response = await authApi.signup({ email, password, name });
 
     if (response.success && response.data) {
-      setUser(response.data.user);
       localStorage.setItem("fitness_user", JSON.stringify(response.data.user));
+      setUser(response.data.user);
+      setLoading(false);
     }
 
     return response;
