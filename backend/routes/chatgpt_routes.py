@@ -10,7 +10,7 @@ from services.pinecone_service import embed_text, upsert_vector, retrieve_all_lo
 from services.supabase_service import save_log_to_supabase, get_recent_logs, save_message_to_supabase
 from settings import get_user_settings
 
-chatgpt_bp = Blueprint("chatgpt", __name__, url_prefix="/chatgpt")
+chatgpt_bp = Blueprint("chatgpt", __name__)
 
 @chatgpt_bp.route("/chat", methods=["POST"])
 def chat_with_gpt():

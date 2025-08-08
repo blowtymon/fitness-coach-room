@@ -6,7 +6,7 @@ from services.auth import get_user_id_from_token
 from services.pinecone_service import embed_text, upsert_vector, search_similar_vectors
 from config import supabase
 
-log_bp = Blueprint("log", __name__, url_prefix="/logs")
+log_bp = Blueprint("log", __name__)
 
 def flatten_metadata(data: dict, parent_key='', sep='_') -> dict:
     items = []

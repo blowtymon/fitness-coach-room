@@ -3,7 +3,7 @@ import uuid
 from services.auth import get_user_id_from_token
 from config import supabase
 
-folder_bp = Blueprint("folder", __name__, url_prefix="/folders")
+folder_bp = Blueprint("folder", __name__)
 
 @folder_bp.route("/create", methods=["POST"])
 def create_folder():

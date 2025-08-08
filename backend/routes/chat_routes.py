@@ -5,7 +5,7 @@ from services.supabase_service import save_message_to_supabase
 from config import supabase
 from services.auth import get_user_id_from_token
 
-chat_bp = Blueprint("chat", __name__, url_prefix="/chats")
+chat_bp = Blueprint("chat", __name__)
 
 # Create a new chat
 @chat_bp.route("/create", methods=["POST"])

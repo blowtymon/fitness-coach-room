@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 from flask import Blueprint, request, jsonify
 from services.auth import get_user_id_from_token
 
-settings_bp = Blueprint("settings", __name__, url_prefix="/settings")
+settings_bp = Blueprint("settings", __name__)
 
 load_dotenv()
 

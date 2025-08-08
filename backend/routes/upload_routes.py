@@ -5,7 +5,7 @@ from services.auth import get_user_id_from_token
 from services.storage_service import upload_file_to_storage
 from config import supabase
 
-upload_bp = Blueprint("upload", __name__, url_prefix="/upload")
+upload_bp = Blueprint("upload", __name__)
 
 @upload_bp.route("/file", methods=["POST"])
 def upload_file():
