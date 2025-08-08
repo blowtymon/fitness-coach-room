@@ -11,7 +11,7 @@ from routes.chatgpt_routes import chatgpt_bp
 from routes.settings_routes import settings_bp
 
 # ALLOWED_ORIGINS = ["http://localhost:8080"]
-ALLOWED_ORIGINS = ["http://172.31.89.40:8080"]
+ALLOWED_ORIGINS = ["http://18.234.185.87:8080"]
 
 BUILD_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend/dist"))
 

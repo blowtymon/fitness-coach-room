@@ -1,5 +1,5 @@
 // const BASE_URL = "http://localhost:5000/api";
-const BASE_URL = "http://172.31.89.40:5000/api";
+const BASE_URL = "http://18.234.185.87:5000/api";
 
 export interface ApiResponse<T = any> {
   success: boolean;
