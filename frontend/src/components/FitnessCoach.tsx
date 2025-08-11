@@ -171,7 +171,7 @@ export const FitnessCoach = () => {
         const res = await fetch("/api/auth/ping", {
           headers: {
             Authorization: `Bearer ${
-              localStorage.getItem("access_token") || ""
+              localStorage.getItem("fitness_token") || ""
             }`,
           },
         });
