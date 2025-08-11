@@ -36,7 +36,7 @@ def chat_with_gpt():
     # Save user message
     user_msg_id = str(uuid.uuid4())
     assistant_msg_id = str(uuid.uuid4())
-    save_message_to_supabase(user_msg_id, chat_id, user_id, "user", user_message)
+    # save_message_to_supabase(user_msg_id, chat_id, user_id, "user", user_message)
 
     # === Retrieve context ===
     # context = retrieve_all_logs_from_pinecone(user_id)
@@ -88,7 +88,7 @@ def chat_with_gpt():
     def generate():
         full_response = ""
         collected_text = ""
-
+        log_saved = False
         try:
             stream = openai.chat.completions.create(
                 model=settings["openai_model"],
@@ -126,7 +126,7 @@ def chat_with_gpt():
                             timestamp=timestamp,
                             metadata=parsed.get("structured", {})
                         )
-
+                        log_saved = True
                         # # Vector for log content
                         # vector = embed_text(user_message)
                         # upsert_vector(log_id, vector, {
@@ -138,6 +138,9 @@ def chat_with_gpt():
                     print("[Warning] Failed to parse structured log JSON:")
                     print(parse_error)
 
+            if log_saved:
+                yield "\n\n✅ Log saved successfully."
+                
             # === Save chat + response to Pinecone ===
             # embedding = embed_text(user_message + " " + full_response)
             # upsert_vector(assistant_msg_id, embedding, {

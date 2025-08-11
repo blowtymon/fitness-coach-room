@@ -1,8 +1,22 @@
-from flask import Blueprint, request, jsonify, redirect, url_for
-from config import supabase
+from flask import Blueprint, request, jsonify
 from datetime import datetime
+from config import supabase
+from gotrue.errors import AuthApiError
 
 auth_bp = Blueprint("auth", __name__)
+
+def _get_user_id_from_auth_header() -> str | None:
+    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    if not token:
+        return None
+    try:
+        res = supabase.auth.get_user(token)
+        return res.user.id if res and getattr(res, "user", None) else None
+    except AuthApiError:
+        return None
+    except Exception:
+        return None
+
 
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
@@ -29,8 +43,10 @@ def signup():
             "name": data.get("name", "")
         }).execute()
 
-        return {"message": "Signup successful",
-                "user": {"id": user.id, "email": user.email, "name": data.get("name", "")}}, 200
+        return {
+            "message": "Signup successful",
+            "user": {"id": user.id, "email": user.email, "name": data.get("name", "")}
+        }, 200
 
     except Exception as e:
         return {"message": "Signup failed", "error": str(e)}, 400
@@ -65,3 +81,9 @@ def signin():
         return {"message": "Signin error", "error": str(e)}, 400
 
 
+@auth_bp.route("/ping", methods=["GET"])
+def ping():
+    user_id = _get_user_id_from_auth_header()
+    if not user_id:
+        return jsonify({"error": "Unauthorized", "code": "token_expired"}), 401
+    return jsonify({"status": "ok", "user_id": user_id}), 200

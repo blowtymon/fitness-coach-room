@@ -19,6 +19,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useChatStorage } from "@/hooks/useChatStorage";
 import { logsApi } from "@/services/logsApi";
 import { chatApi } from "@/services/chatApi";
+import { useNavigate } from "react-router-dom";
 
 export interface NutritionData {
   calories?: number;
@@ -107,6 +108,7 @@ export const FitnessCoach = () => {
     refreshChats,
   } = useChatStorage();
 
+  const navigate = useNavigate();
   const [logs, setLogs] = useState<any>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [settings, setSettings] = useState<CoachSettings>({
@@ -160,6 +162,31 @@ export const FitnessCoach = () => {
     };
     fetchlogs();
   }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/auth/ping", {
+          headers: {
+            Authorization: `Bearer ${
+              localStorage.getItem("access_token") || ""
+            }`,
+          },
+        });
+
+        if (res.status === 401) {
+          signOut();
+          navigate("/signin");
+        }
+      } catch (err) {
+        console.error("Ping error:", err);
+      }
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [user, signOut, navigate]);
 
   const handleSendMessage = (content: string, isUser: boolean) => {
     addMessageToCurrentChat(content, isUser);
