@@ -85,6 +85,14 @@ export interface CoachSettings {
   webSearchEnabled: boolean;
 }
 
+function generateUUID() {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = crypto.getRandomValues(new Uint8Array(1))[0] & 15;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export const FitnessCoach = () => {
   const { user, loading, signOut, setUser } = useAuth();
   const {
@@ -169,7 +177,7 @@ export const FitnessCoach = () => {
   const handleNewLog = async (log: Omit<Log, "id" | "timestamp">) => {
     const newLog: Log = {
       ...log,
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       timestamp: new Date(),
     };
 
