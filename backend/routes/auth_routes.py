@@ -11,33 +11,26 @@ def signup():
         res = supabase.auth.sign_up({
             "email": data["email"],
             "password": data["password"],
-            "options": {
-                "data": {
-                    "name": data.get("name", "")
-                }
-            }
+            "options": {"data": {"name": data.get("name", "")}}
         })
 
         user = res.user
+        session = res.session
 
-        if user and user.id:
-            supabase.table("users").insert({
-                "id": user.id,
-                "email": user.email,
-                "name": data.get("name", ""),
-                "created_at": datetime.utcnow().isoformat()
-            }).execute()
-
-            return {
-                "message": "Signup successful",
-                "user": {
-                    "id": user.id,
-                    "email": user.email,
-                    "name": data.get("name", "")
-                }
-            }, 200
-        else:
+        if not user or not user.id:
             return {"message": "Signup failed, no user returned"}, 400
+
+        if session and session.access_token:
+            supabase.postgrest.auth(session.access_token)
+
+        supabase.table("users").insert({
+            "id": user.id,
+            "email": user.email,
+            "name": data.get("name", "")
+        }).execute()
+
+        return {"message": "Signup successful",
+                "user": {"id": user.id, "email": user.email, "name": data.get("name", "")}}, 200
 
     except Exception as e:
         return {"message": "Signup failed", "error": str(e)}, 400
