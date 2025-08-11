@@ -183,7 +183,7 @@ export const FitnessCoach = () => {
       } catch (err) {
         console.error("Ping error:", err);
       }
-    }, 10000);
+    }, 20000);
 
     return () => clearInterval(interval);
   }, [user, signOut, navigate]);

@@ -44,7 +44,7 @@ export function AuthForm({ mode = "signin" }: { mode?: "signin" | "signup" }) {
       if (isSignUp) {
         response = await signUp(email, password, name || email.split("@")[0]);
         if (response.success) {
-          navigate("/chat");
+          navigate("/signin");
           toast({
             title: "Signup successful",
             description: "Please check your email to verify your account.",
