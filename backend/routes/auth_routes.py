@@ -5,18 +5,35 @@ from gotrue.errors import AuthApiError
 
 auth_bp = Blueprint("auth", __name__)
 
+def _extract_bearer() -> str | None:
+    raw = request.headers.get("Authorization", "")
+    # debug (short): see if header actually arrives
+    print("Auth hdr (first 25):", raw[:25])
+
+    if not raw:
+        return None
+    # allow case-insensitive "bearer", strip quotes/space
+    if raw.lower().startswith("bearer "):
+        token = raw[7:]
+    else:
+        token = raw
+    token = token.strip().strip('"').strip("'")
+    return token or None
+
 def _get_user_id_from_auth_header() -> str | None:
-    token = request.headers.get("Authorization", "").replace("Bearer ", "").strip()
+    token = _extract_bearer()
     if not token:
         return None
     try:
-        res = supabase.auth.get_user(token)
+        # be explicit with kwarg; some versions require it
+        res = supabase.auth.get_user(jwt=token)
         return res.user.id if res and getattr(res, "user", None) else None
-    except AuthApiError:
+    except AuthApiError as e:
+        print("AuthApiError in get_user:", getattr(e, "message", str(e)))
         return None
-    except Exception:
+    except Exception as e:
+        print("Unexpected error in get_user:", e)
         return None
-
 
 @auth_bp.route("/signup", methods=["POST"])
 def signup():
@@ -85,5 +102,5 @@ def signin():
 def ping():
     user_id = _get_user_id_from_auth_header()
     if not user_id:
-        return jsonify({"error": "Unauthorized", "code": "token_expired"}), 401
+        return jsonify({"error": "Unauthorized", "code": "token_invalid_or_expired"}), 401
     return jsonify({"status": "ok", "user_id": user_id}), 200
