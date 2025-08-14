@@ -46,37 +46,32 @@ def chat_with_gpt():
     # print("context----------------")
     # print(context)
     # === System prompt for all-in-one GPT call ===
-    system_prompt = """
-    You are Ori's science-backed bodybuilding coach.
+    system_prompt = settings.get("prompt") or """
+        You are Ori's science-backed bodybuilding coach.
 
-    Your tasks:
-    1. If the user's message is a **fitness log**, extract a structured `json:` block (no backticks). Format:
-        {
-            "type": "log",
-            "structured": {
-                "nutrition": {...},
-                "bodyMeasurements": {...},
-                "recovery": {...},
-                "workout": {
-                "exercises": [
-                    {"name": "squat", "sets": 3, "reps": 10, "weight": 100},
-                    {"name": "bench press", "sets": 3, "reps": 8, "weight": 80}
-                ]
+        Your tasks:
+        1. If the user's message is a **fitness log**, extract a structured `json:` block (no backticks). Format:
+            {
+                "type": "log",
+                "structured": {
+                    "nutrition": {...},
+                    "bodyMeasurements": {...},
+                    "recovery": {...},
+                    "workout": {
+                    "exercises": [
+                        {"name": "squat", "sets": 3, "reps": 10, "weight": 100},
+                        {"name": "bench press", "sets": 3, "reps": 8, "weight": 80}
+                    ]
+                    }
                 }
-            },
-            "note": "...",
-            "description": "..."
-        }
+            }
 
-    2. If it's a question and the **user history is provided**, use it to answer accurately. The history comes from the user's fitness logs stored in the system.
-       If the user asks about their past logs, summarize or extract directly from the provided context. Do not hallucinate. The log history is provided in full.
+        2. If it's a question and the **user history is provided**, use it to answer accurately.
+        3. If it's unrelated to past logs, answer clearly in **Notion-style markdown**.
 
-
-    3. If it's a general question unrelated to past logs, answer clearly in **Notion-style markdown** with bold headings, bullet points, and code blocks.
-
-    - Only include `json:` block for logs.
-    - Never guess or hallucinate data.
-    """
+        - Only include `json:` block for logs.
+        - Never guess or hallucinate data.
+        """
 
     messages = [
         {"role": "system", "content": system_prompt},

@@ -6,16 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Upload, FileText, X } from "lucide-react";
+import { FileText, X, Plus, Upload } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { FileUpload } from "./FileUpload";
+
+import { FilePickerDialog } from "@/components/FilePickerDialog";
+import { uploadApi } from "@/services/uploadApi";
 
 import type {
   Log,
   NutritionData,
   BodyMeasurements,
   RecoveryData,
-  StructuredData,
   StructuredLogInput,
 } from "./FitnessCoach";
 
@@ -23,78 +24,103 @@ interface LogEntryProps {
   onSubmit: (log: Log | StructuredLogInput) => void;
 }
 
+type UploadedAttachment = {
+  id: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  url: string;
+};
+
 export const LogEntry = ({ onSubmit }: LogEntryProps) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("quick");
 
-  // Quick log state
   const [quickContent, setQuickContent] = useState("");
-  //   const [logType, setLogType] = useState<Log["type"]>("quick");
-
-  // Nutrition state
+  const [title, setTitle] = useState("");
+  const [note, setNote] = useState("");
   const [nutrition, setNutrition] = useState<NutritionData>({});
 
-  // Body measurements state
   const [bodyMeasurements, setBodyMeasurements] = useState<BodyMeasurements>(
     {}
   );
 
-  // Recovery state
   const [recovery, setRecovery] = useState<RecoveryData>({});
+  const [pickerOpen, setPickerOpen] = useState(false);
 
-  // File upload state
-  const [files, setFiles] = useState<File[]>([]);
-  const [title, setTitle] = useState("");
-  const [note, setNote] = useState("");
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(event.target.files || []);
+  const [uploadedAttachments, setUploadedAttachments] = useState<
+    UploadedAttachment[]
+  >([]);
 
-    // Validate file types and sizes
-    const validFiles = selectedFiles.filter((file) => {
-      const isValidType = [
-        "application/pdf",
-        "image/jpeg",
-        "image/png",
-        "text/plain",
-      ].includes(file.type);
-      const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB
-
-      if (!isValidType) {
-        toast({
-          title: "Invalid file type",
-          description: `${file.name} is not a supported file type`,
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      if (!isValidSize) {
-        toast({
-          title: "File too large",
-          description: `${file.name} exceeds 10MB limit`,
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      return true;
-    });
-
-    setFiles((prev) => [...prev, ...validFiles]);
+  const onFilesPicked = (files: File[]) => {
+    const key = (f: File) => `${f.name}_${f.size}`;
+    const existing = new Set(pendingFiles.map(key));
+    const deduped = files.filter((f) => !existing.has(key(f)));
+    setPendingFiles((prev) => [...prev, ...deduped]);
   };
 
-  const removeFile = (index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
+  const removePending = (idx: number) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
-    });
+  const removeUploaded = (idx: number) => {
+    setUploadedAttachments((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const uploadPendingFiles = async () => {
+    if (!pendingFiles.length) return;
+    setIsUploading(true);
+    try {
+      const results = await Promise.all(
+        pendingFiles.map(async (file) => {
+          const resp = await uploadApi.uploadFile(file);
+          const ok = !!(resp.success && resp.fileUrl);
+          return {
+            ok,
+            file,
+            uploaded: ok
+              ? ({
+                  id: resp.logId ?? crypto.randomUUID(),
+                  fileName: file.name,
+                  fileType: file.type,
+                  fileSize: file.size,
+                  url: resp.fileUrl!,
+                } as UploadedAttachment)
+              : undefined,
+            error: resp.error,
+          };
+        })
+      );
+
+      const successes = results.filter((r) => r.ok).map((r) => r.uploaded!);
+      const failures = results
+        .map((r, i) => ({ r, i }))
+        .filter(({ r }) => !r.ok)
+        .map(({ i }) => pendingFiles[i].name);
+
+      if (successes.length) {
+        setUploadedAttachments((prev) => [...prev, ...successes]);
+        toast({
+          title: "Upload complete",
+          description: `${successes.length} file(s) uploaded successfully.`,
+        });
+      }
+      if (failures.length) {
+        toast({
+          title: "Some uploads failed",
+          description: failures.join(", "),
+          variant: "destructive",
+        });
+      }
+
+      const successMask = results.map((r) => r.ok);
+      setPendingFiles((prev) => prev.filter((_, i) => !successMask[i]));
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleQuickLog = async () => {
@@ -115,7 +141,7 @@ export const LogEntry = ({ onSubmit }: LogEntryProps) => {
     });
 
     setQuickContent("");
-    setFiles([]);
+    setUploadedAttachments([]);
     toast({
       title: "Log submitted",
       description: "Your log has been recorded successfully",
@@ -127,27 +153,16 @@ export const LogEntry = ({ onSubmit }: LogEntryProps) => {
     data: any,
     description: string
   ) => {
-    const attachments = await Promise.all(
-      files.map(async (file) => ({
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        content: await fileToBase64(file),
-      }))
-    );
-
     onSubmit({
       type,
       structured: data,
-      attachments: attachments.length > 0 ? attachments : undefined,
       description,
     });
 
-    // Reset forms
     setNutrition({});
     setBodyMeasurements({});
     setRecovery({});
-    setFiles([]);
+    setUploadedAttachments([]);
 
     toast({
       title: "Log submitted",
@@ -177,14 +192,13 @@ export const LogEntry = ({ onSubmit }: LogEntryProps) => {
               <TabsTrigger value="files">Files</TabsTrigger>
             </TabsList>
 
-            {/* Quick Log */}
             <TabsContent
               value="quick"
               className="space-y-4"
             >
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="logType">Title</Label>
+                  <Label htmlFor="title">Title</Label>
                   <Input
                     id="title"
                     type="text"
@@ -204,8 +218,9 @@ export const LogEntry = ({ onSubmit }: LogEntryProps) => {
                     rows={4}
                   />
                 </div>
+
                 <div>
-                  <Label htmlFor="logType">Note</Label>
+                  <Label htmlFor="note">Note</Label>
                   <Input
                     id="note"
                     type="text"
@@ -214,6 +229,7 @@ export const LogEntry = ({ onSubmit }: LogEntryProps) => {
                     onChange={(e) => setNote(e.target.value)}
                   />
                 </div>
+
                 <Button
                   onClick={handleQuickLog}
                   className="w-full"
@@ -223,7 +239,6 @@ export const LogEntry = ({ onSubmit }: LogEntryProps) => {
               </div>
             </TabsContent>
 
-            {/* Nutrition */}
             <TabsContent
               value="nutrition"
               className="space-y-4"
@@ -299,18 +314,11 @@ export const LogEntry = ({ onSubmit }: LogEntryProps) => {
                   )
                 }
                 className="w-full"
-                // disabled={
-                //   !nutrition.calories &&
-                //   !nutrition.carbs &&
-                //   !nutrition.protein &&
-                //   !nutrition.fat
-                // }
               >
                 Submit Nutrition Log
               </Button>
             </TabsContent>
 
-            {/* Body Measurements */}
             <TabsContent
               value="body"
               className="space-y-4"
@@ -459,8 +467,8 @@ export const LogEntry = ({ onSubmit }: LogEntryProps) => {
                   <Input
                     id="doms"
                     type="number"
-                    min="1"
-                    max="10"
+                    min={1}
+                    max={10}
                     placeholder="3"
                     value={recovery.doms || ""}
                     onChange={(e) =>
@@ -489,63 +497,105 @@ export const LogEntry = ({ onSubmit }: LogEntryProps) => {
               </Button>
             </TabsContent>
 
-            {/* File Upload */}
+            {/* Files */}
             <TabsContent
               value="files"
               className="space-y-4"
             >
-              <div className="space-y-4">
+              <div className="flex items-center justify-between mt-4">
                 <div>
-                  <Label htmlFor="fileUpload">Upload Files</Label>
-                  <Input
-                    id="fileUpload"
-                    type="file"
-                    multiple
-                    accept=".pdf,.jpg,.jpeg,.png,.txt"
-                    onChange={handleFileUpload}
-                    className="cursor-pointer"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Supports: PDF, JPG, PNG, TXT (max 10MB each)
+                  <Label>Attachments</Label>
+                  <p className="text-xs text-muted-foreground">
+                    PDF, JPG, PNG, TXT (max 10MB each)
                   </p>
                 </div>
-
-                {files.length > 0 && (
-                  <>
-                    {" "}
-                    <div className="space-y-2">
-                      <Label>Selected Files ({files.length})</Label>
-                      {files.map((file, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-2 bg-muted rounded border"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <FileText className="h-4 w-4 text-accent" />
-                            <span className="text-sm font-medium">
-                              {file.name}
-                            </span>
-                            <Badge
-                              variant="secondary"
-                              className="text-xs"
-                            >
-                              {(file.size / 1024 / 1024).toFixed(2)} MB
-                            </Badge>
-                          </div>
-                          <Button
-                            onClick={() => removeFile(index)}
-                            size="sm"
-                            variant="ghost"
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                    <FileUpload />
-                  </>
-                )}
+                <div className="flex items-center gap-2">
+                  <Button onClick={() => setPickerOpen(true)}>
+                    <Plus className="h-4 w-4" />
+                    <p className="hidden md:block">Add file</p>
+                  </Button>
+                  <Button
+                    onClick={uploadPendingFiles}
+                    disabled={!pendingFiles.length || isUploading}
+                  >
+                    <Upload className="h-4 w-4" />
+                    <p className="hidden md:block">
+                      {isUploading ? "Uploading..." : "Upload"}
+                    </p>
+                  </Button>
+                </div>
               </div>
+
+              {pendingFiles.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Pending ({pendingFiles.length})</Label>
+                  {pendingFiles.map((file, index) => (
+                    <div
+                      key={`${file.name}_${file.size}_${index}`}
+                      className="flex items-center justify-between p-2 bg-muted rounded border"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-4 w-4" />
+                        <span className="text-sm font-medium truncate max-w-[240px]">
+                          {file.name}
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </Badge>
+                      </div>
+                      <Button
+                        onClick={() => removePending(index)}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {uploadedAttachments.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Uploaded ({uploadedAttachments.length})</Label>
+                  {uploadedAttachments.map((att, index) => (
+                    <div
+                      key={att.id}
+                      className="flex items-center justify-between p-2 bg-muted rounded border"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <FileText className="h-4 w-4" />
+                        <span className="text-sm font-medium truncate max-w-[240px]">
+                          {att.fileName}
+                        </span>
+                        <Badge
+                          variant="secondary"
+                          className="text-xs"
+                        >
+                          {(att.fileSize / 1024 / 1024).toFixed(2)} MB
+                        </Badge>
+                      </div>
+                      <Button
+                        onClick={() => removeUploaded(index)}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <FilePickerDialog
+                open={pickerOpen}
+                onOpenChange={setPickerOpen}
+                onPicked={onFilesPicked}
+                multiple
+              />
             </TabsContent>
           </Tabs>
         </CardContent>

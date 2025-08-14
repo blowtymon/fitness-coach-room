@@ -281,7 +281,7 @@ export const FitnessCoach = () => {
   }
 
   return (
-    <div className="flex flex-col md:flex-row pt-[60px] md:pt-0 min-h-screen md:[height:calc(100vh-200px)]">
+    <div className="flex flex-col md:flex-row pt-[60px] md:pt-0 min-h-screen h-full">
       <ChatManager
         currentChatId={currentChatId}
         onChatSelect={setCurrentChatId}

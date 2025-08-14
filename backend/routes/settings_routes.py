@@ -68,6 +68,7 @@ def save_settings():
         "pinecone_index",
         "openai_model",
         "temperature",
+        "prompt",
     ]
 
     updates = {k: v for k, v in ((f, data.get(f)) for f in fields) if present(v)}
@@ -84,3 +85,48 @@ def save_settings():
         supabase.table(SETTINGS_TABLE).insert(record).execute()
 
     return {"status": "settings saved"}
+
+@settings_bp.route("/getSettings", methods=["GET"])
+def get_settings():
+    token = request.headers.get("Authorization", "").replace("Bearer ", "")
+    user_id = get_user_id_from_token(token)
+
+    if not user_id:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    try:
+        resp = (
+            supabase.table(SETTINGS_TABLE)
+            .select("id,openai_model,temperature,prompt,pinecone_env,pinecone_index,openai_key,pinecone_key,updated_at")
+            .limit(1)
+            .execute()
+        )
+
+        row = resp.data[0] if resp.data else None
+
+        if not row:
+            return jsonify({
+                "openai_model": "gpt-4o",
+                "temperature": 0.7,
+                "prompt": "",
+                "pinecone_env": "",
+                "pinecone_index": "",
+                "has_openai_key": False,
+                "has_pinecone_key": False,
+                "updated_at": None,
+            }), 200
+
+        return jsonify({
+            "openai_model": row.get("openai_model", "gpt-4o"),
+            "temperature": row.get("temperature", 0.7),
+            "prompt": row.get("prompt", ""),
+            "pinecone_env": row.get("pinecone_env", ""),
+            "pinecone_index": row.get("pinecone_index", ""),
+            "has_openai_key": bool(row.get("openai_key")),
+            "has_pinecone_key": bool(row.get("pinecone_key")),
+            "updated_at": row.get("updated_at"),
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": "Failed to fetch settings"}), 500
+

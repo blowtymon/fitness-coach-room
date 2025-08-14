@@ -26,7 +26,9 @@ import {
 } from "lucide-react";
 import { searchService } from "@/services/search";
 import { memoryService } from "@/services/memory";
+import type { GetSettingsResponse } from "@/services/memory";
 import type { CoachSettings } from "./FitnessCoach";
+import { Textarea } from "./ui/textarea";
 
 interface SettingsPanelProps {
   settings: CoachSettings;
@@ -45,6 +47,7 @@ export const SettingsPanel = ({
   const [pineconeKey, setPineconeKey] = useState("");
   const [pineconeEnv, setPineconeEnv] = useState("");
   const [pineconeIndex, setPineconeIndex] = useState("");
+  const [prompt, setPrompt] = useState("");
   const [model, setModel] = useState("gpt-4o");
   const [temperature, setTemperature] = useState<number>(0.7);
 
@@ -53,45 +56,74 @@ export const SettingsPanel = ({
   const [isSearchConnected, setIsSearchConnected] = useState(false);
   const [isPineconeConnected, setIsPineconeConnected] = useState(false);
 
-  //   useEffect(() => {
-  //     // Load saved API keys
-  //     const savedSearch = localStorage.getItem("search_api_key");
-  //     const savedPinecone = localStorage.getItem("pinecone_api_key");
-  //     const savedEnv = localStorage.getItem("pinecone_environment");
-  //     const savedIndex = localStorage.getItem("pinecone_index");
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data: GetSettingsResponse = await memoryService.getSettings();
 
-  //     if (savedOpenAI) {
-  //       setOpenaiKey("••••••••••••••••");
-  //       setIsOpenAIConnected(true);
-  //     }
-  //     if (savedSearch) {
-  //       setSearchKey("••••••••••••••••");
-  //       setIsSearchConnected(true);
-  //     }
-  //     if (savedPinecone) {
-  //       setPineconeKey("••••••••••••••••");
-  //       setIsPineconeConnected(true);
-  //     }
-  //     if (savedEnv) setPineconeEnv(savedEnv);
-  //     if (savedIndex) setPineconeIndex(savedIndex);
-  //   }, []);
+        setModel(data.openai_model || "gpt-4o");
+        setTemperature(
+          typeof data.temperature === "number" ? data.temperature : 0.7
+        );
+        setPrompt(data.prompt ?? "");
+        setPineconeEnv(data.pinecone_env ?? "");
+        setPineconeIndex(data.pinecone_index ?? "");
+
+        if (data.has_openai_key) {
+          setIsOpenAIConnected(true);
+          setOpenaiKey("••••••••••••••••");
+        } else {
+          setIsOpenAIConnected(false);
+          setOpenaiKey("");
+        }
+
+        if (data.has_pinecone_key) {
+          setIsPineconeConnected(true);
+          setPineconeKey("••••••••••••••••");
+        } else {
+          setIsPineconeConnected(false);
+          setPineconeKey("");
+        }
+
+        onSettingsChange({
+          ...settings,
+          model: data.openai_model || "gpt-4o",
+          temperature:
+            typeof data.temperature === "number" ? data.temperature : 0.7,
+        });
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      }
+    };
+    load();
+  }, []);
 
   const handleSave = async () => {
     try {
-      const response = await memoryService.setSettings({
-        openai_key: openaiKey,
-        pinecone_key: pineconeKey,
+      const resp = await memoryService.setSettings({
+        openai_key: openaiKey.startsWith("•") ? "" : openaiKey,
+        pinecone_key: pineconeKey.startsWith("•") ? "" : pineconeKey,
         pinecone_env: pineconeEnv,
         pinecone_index: pineconeIndex,
         openai_model: model,
-        temperature: temperature,
+        temperature,
+        prompt,
       });
 
-      if (response.success)
+      if (resp.status === "settings saved") {
+        if (openaiKey && !openaiKey.startsWith("•")) {
+          setIsOpenAIConnected(true);
+          setOpenaiKey("••••••••••••••••");
+        }
+        if (pineconeKey && !pineconeKey.startsWith("•")) {
+          setIsPineconeConnected(true);
+          setPineconeKey("••••••••••••••••");
+        }
         toast({
           title: "Settings saved!",
           description: "Your AI coach configuration has been updated.",
         });
+      }
     } catch (error) {
       console.error("Failed to save settings:", error);
       toast({
@@ -133,15 +165,37 @@ export const SettingsPanel = ({
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                {/* GPT-4 Models */}
                 <SelectItem value="gpt-4o">GPT-4o (Recommended)</SelectItem>
                 <SelectItem value="gpt-4o-mini">
                   GPT-4o Mini (Faster)
                 </SelectItem>
                 <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+
+                {/* GPT-5 Models */}
+                <SelectItem value="gpt-5">GPT-5 (Latest)</SelectItem>
+                <SelectItem value="gpt‑5‑mini">GPT-5 Mini (Faster)</SelectItem>
+                <SelectItem value="gpt‑5‑nano">GPT-5 Nano (Fastest)</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              GPT-4o provides the best reasoning for complex fitness analysis
+              GPT-4o is recommended for balanced reasoning speed and accuracy.
+              GPT-5 models provide more advanced reasoning.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <Label htmlFor="prompt">Prompt</Label>
+            <div className="flex gap-2">
+              <Textarea
+                id="prompt"
+                placeholder="Enter your prompt template..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="flex-1 bg-input border-border/50 min-h-[250px]"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Type your prompt template here.
             </p>
           </div>
 

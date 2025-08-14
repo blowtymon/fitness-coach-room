@@ -1,3 +1,4 @@
+# routes/upload_routes.py
 from flask import Blueprint, request, jsonify
 import uuid
 from werkzeug.utils import secure_filename
@@ -12,19 +13,23 @@ def upload_file():
     token = request.headers.get("Authorization", "").replace("Bearer ", "")
     user_id = get_user_id_from_token(token)
     if not user_id:
-        return jsonify({"error": "Unauthorized"}), 401
-        
-    file = request.files["file"]
+        return jsonify({"success": False, "error": "Unauthorized"}), 401
+
+    file = request.files.get("file")
+    if not file or not getattr(file, "filename", ""):
+        return jsonify({"success": False, "error": "no file"}), 400
+
     file_type = request.form.get("file_type", "generic")
     associated_log_id = request.form.get("associated_log_id")
 
-    if file:
+    try:
         file_name = secure_filename(file.filename)
-        path = f"{user_id}/{uuid.uuid4()}_{file_name}"
-        url = upload_file_to_storage("uploads", path, file)
+        object_path = f"{user_id}/{uuid.uuid4()}_{file_name}"
+
+        url = upload_file_to_storage("uploads", object_path, file, content_type=file.mimetype)
 
         file_id = str(uuid.uuid4())
-        supabase.table("file_uploads").insert({
+        res = supabase.table("file_uploads").insert({
             "id": file_id,
             "user_id": user_id,
             "file_name": file_name,
@@ -33,6 +38,16 @@ def upload_file():
             "associated_log_id": associated_log_id
         }).execute()
 
-        return jsonify({"status": "uploaded", "file_id": file_id, "url": url})
+        if hasattr(res, "error") and res.error:
+            return jsonify({"success": False, "error": str(res.error)}), 500
 
-    return jsonify({"error": "no file"}), 400
+        return jsonify({
+            "success": True,
+            "data": {
+                "fileUrl": url,
+                "logId": file_id
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
